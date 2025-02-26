@@ -11,7 +11,7 @@ const generateToken = (id) => {
 	});
 };
 
-// Store email codes (in memory for simplicity - use Redis in production)
+// Store email codes
 const emailCodes = {};
 
 // Register a new user
@@ -38,7 +38,7 @@ exports.register = async (req, res) => {
 			email,
 			password,
 			twoFactorSecret: secret.base32,
-			isTwoFactorEnabled: true,
+			isTwoFactorEnabled: false,
 		});
 
 		// Generate QR code for Google Authenticator
@@ -81,7 +81,7 @@ exports.verifyTwoFactorCode = async (req, res) => {
 			secret: user.twoFactorSecret,
 			encoding: "base32",
 			token: twoFactorCode,
-			window: 1, // Allow a 30-second window
+			window: 0,
 		});
 
 		if (!verified) {
@@ -90,6 +90,10 @@ exports.verifyTwoFactorCode = async (req, res) => {
 				message: "Invalid authentication code",
 			});
 		}
+
+		// Update isTwoFactorEnabled to true
+		user.isTwoFactorEnabled = true;
+		await user.save();
 
 		// Generate JWT token
 		const token = generateToken(user._id);
@@ -139,10 +143,10 @@ exports.login = async (req, res) => {
 		// Generate a 6-digit code
 		const code = Math.floor(100000 + Math.random() * 900000).toString();
 
-		// Store code with timestamp (valid for 2 minutes)
+		// Store code with timestamp
 		emailCodes[email] = {
 			code,
-			expiresAt: Date.now() + 2 * 60 * 1000, // 2 minutes
+			expiresAt: Date.now() + 30 * 1000, // 30 seconds
 		};
 
 		// Send code to user's email
