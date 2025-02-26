@@ -217,11 +217,3 @@ exports.verifyEmailCode = async (req, res) => {
 		});
 	}
 };
-
-// Google OAuth login route handler
-exports.googleCallback = (req, res) => {
-	const token = generateToken(req.user._id);
-
-	// Redirect to frontend with token
-	res.redirect(`${process.env.CLIENT_URL}/auth/google-callback?token=${token}`);
-};
