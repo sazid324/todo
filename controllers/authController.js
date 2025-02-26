@@ -11,9 +11,6 @@ const generateToken = (id) => {
 	});
 };
 
-// Store email codes
-const emailCodes = {};
-
 // Register a new user
 exports.register = async (req, res) => {
 	try {
@@ -143,11 +140,12 @@ exports.login = async (req, res) => {
 		// Generate a 6-digit code
 		const code = Math.floor(100000 + Math.random() * 900000).toString();
 
-		// Store code with timestamp
-		emailCodes[email] = {
+		// Store code with timestamp in the database
+		user.otp = {
 			code,
-			expiresAt: Date.now() + 30 * 1000, // 30 seconds
+			expiresAt: Date.now() + 2 * 60 * 1000, // 2 minutes
 		};
+		await user.save();
 
 		// Send code to user's email
 		await emailService.sendVerificationCode(email, code);
@@ -172,9 +170,17 @@ exports.verifyEmailCode = async (req, res) => {
 	try {
 		const { email, code } = req.body;
 
+		// Find user
+		const user = await User.findOne({ email });
+		if (!user) {
+			return res.status(404).json({
+				status: "error",
+				message: "User not found",
+			});
+		}
+
 		// Check if code exists and is valid
-		const storedCode = emailCodes[email];
-		if (!storedCode || storedCode.code !== code) {
+		if (!user.otp || parseInt(user.otp.code) !== code) {
 			return res.status(401).json({
 				status: "error",
 				message: "Invalid verification code",
@@ -182,8 +188,9 @@ exports.verifyEmailCode = async (req, res) => {
 		}
 
 		// Check if code is expired
-		if (Date.now() > storedCode.expiresAt) {
-			delete emailCodes[email]; // Clean up expired code
+		if (Date.now() > user.otp.expiresAt) {
+			user.otp = undefined; // Clean up expired code
+			await user.save();
 			return res.status(401).json({
 				status: "error",
 				message: "Verification code expired",
@@ -191,11 +198,10 @@ exports.verifyEmailCode = async (req, res) => {
 		}
 
 		// Clean up used code
-		delete emailCodes[email];
+		user.otp = undefined;
+		await user.save();
 
 		// Code is valid, proceed to 2FA step
-		const user = await User.findOne({ email });
-
 		res.status(200).json({
 			status: "success",
 			message: "Email code verified successfully",

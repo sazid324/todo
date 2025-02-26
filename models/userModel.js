@@ -30,6 +30,10 @@ const userSchema = new mongoose.Schema({
 	googleRefreshToken: {
 		type: String,
 	},
+	otp: {
+		code: String,
+		expiresAt: Date,
+	},
 	createdAt: {
 		type: Date,
 		default: Date.now,
