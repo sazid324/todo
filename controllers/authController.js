@@ -62,7 +62,58 @@ exports.register = async (req, res) => {
 	}
 };
 
-// Login - Step 1: Check email and password
+// Verify Google Authenticator code
+exports.verifyTwoFactorCode = async (req, res) => {
+	try {
+		const { userId, twoFactorCode } = req.body;
+
+		// Find user
+		const user = await User.findById(userId);
+		if (!user) {
+			return res.status(404).json({
+				status: "error",
+				message: "User not found",
+			});
+		}
+
+		// Verify the token against the secret
+		const verified = speakeasy.totp.verify({
+			secret: user.twoFactorSecret,
+			encoding: "base32",
+			token: twoFactorCode,
+			window: 1, // Allow a 30-second window
+		});
+
+		if (!verified) {
+			return res.status(401).json({
+				status: "error",
+				message: "Invalid authentication code",
+			});
+		}
+
+		// Generate JWT token
+		const token = generateToken(user._id);
+
+		res.status(200).json({
+			status: "success",
+			token,
+			user: {
+				id: user._id,
+				email: user.email,
+				googleCalendarConnected: user.googleCalendarConnected,
+			},
+		});
+	} catch (error) {
+		// eslint-disable-next-line no-console
+		console.error(error);
+		res.status(500).json({
+			status: "error",
+			message: "Authentication failed",
+		});
+	}
+};
+
+// Login user
 exports.login = async (req, res) => {
 	try {
 		const { email, password } = req.body;
@@ -112,7 +163,7 @@ exports.login = async (req, res) => {
 	}
 };
 
-// Login - Step 2: Verify email code
+// Verify email code
 exports.verifyEmailCode = async (req, res) => {
 	try {
 		const { email, code } = req.body;
@@ -153,57 +204,6 @@ exports.verifyEmailCode = async (req, res) => {
 		res.status(500).json({
 			status: "error",
 			message: "Verification failed",
-		});
-	}
-};
-
-// Login - Step 3: Verify Google Authenticator code
-exports.verifyTwoFactorCode = async (req, res) => {
-	try {
-		const { userId, twoFactorCode } = req.body;
-
-		// Find user
-		const user = await User.findById(userId);
-		if (!user) {
-			return res.status(404).json({
-				status: "error",
-				message: "User not found",
-			});
-		}
-
-		// Verify the token against the secret
-		const verified = speakeasy.totp.verify({
-			secret: user.twoFactorSecret,
-			encoding: "base32",
-			token: twoFactorCode,
-			window: 1, // Allow a 30-second window
-		});
-
-		if (!verified) {
-			return res.status(401).json({
-				status: "error",
-				message: "Invalid authentication code",
-			});
-		}
-
-		// Generate JWT token
-		const token = generateToken(user._id);
-
-		res.status(200).json({
-			status: "success",
-			token,
-			user: {
-				id: user._id,
-				email: user.email,
-				googleCalendarConnected: user.googleCalendarConnected,
-			},
-		});
-	} catch (error) {
-		// eslint-disable-next-line no-console
-		console.error(error);
-		res.status(500).json({
-			status: "error",
-			message: "Authentication failed",
 		});
 	}
 };

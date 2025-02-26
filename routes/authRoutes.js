@@ -6,9 +6,9 @@ const router = express.Router();
 
 // Auth routes
 router.post("/register", authController.register);
+router.post("/verify-two-factor", authController.verifyTwoFactorCode);
 router.post("/login", authController.login);
 router.post("/verify-email-code", authController.verifyEmailCode);
-router.post("/verify-two-factor", authController.verifyTwoFactorCode);
 
 // Google OAuth routes
 router.get(
