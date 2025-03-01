@@ -60,3 +60,4 @@
 # IDE specific
 **/.vscode/
 **/.idea/
+.vercel
