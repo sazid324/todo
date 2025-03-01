@@ -27,7 +27,8 @@
 		"nodemailer": "^6.10.0",
 		"pug": "^3.0.3",
 		"qrcode": "^1.5.4",
-		"speakeasy": "^2.0.0"
+		"speakeasy": "^2.0.0",
+		"uglify-js": "^3.19.3"
 	},
 	"devDependencies": {
 		"@eslint/js": "^9.15.0",
